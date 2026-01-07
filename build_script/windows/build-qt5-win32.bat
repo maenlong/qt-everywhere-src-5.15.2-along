@@ -116,9 +116,9 @@ set "TMP=%SAFE_TEMP_DIR%"
 set "TEMP=%SAFE_TEMP_DIR%"
 echo Using TEMP=%TEMP%
 
-:: ---- SAFEGUARD: force CL to place PDBs in user temp (only current session) ----
-REM set CL only if not already set to something safe; override unconditionally to be safe here
-set "CL=/Fd%TEMP%\qmake.pdb"
+:: ---- SAFEGUARD: force CL parallel compile for nmake builds ----
+REM Avoid forcing /Fd (Qt makefiles may set it), just enable /MP.
+set "CL=%CL% /MP%MAKE_JOBS%"
 echo Using CL=%CL%
 
 :: ---- Add optional tool paths if provided ----
@@ -143,7 +143,7 @@ if "%SKIP_QTWEBENGINE%"=="1" set "SKIPFLAG=-skip qtwebengine"
 
 echo Running configure:
 echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
-call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% > configure-output.txt 2>&1
+powershell -NoProfile -Command "& { & '%QT_SRC%\configure.bat' -prefix '%INSTALL_DIR%' -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% 2>&1 | Tee-Object -FilePath 'configure-output.txt' ; exit $LASTEXITCODE }"
 if errorlevel 1 (
   echo configure failed. Showing last 300 lines of configure-output.txt:
   powershell -NoProfile -Command "Get-Content -Path 'configure-output.txt' -Tail 300" 2>nul || type configure-output.txt | more
@@ -153,7 +153,7 @@ if errorlevel 1 (
 
 :: ---- build (nmake) ----
 echo Starting build with nmake...
-nmake > build-output.txt 2>&1
+powershell -NoProfile -Command "& { nmake 2>&1 | Tee-Object -FilePath 'build-output.txt' ; exit $LASTEXITCODE }"
 if errorlevel 1 (
   echo build failed. Showing last 200 lines of build-output.txt:
   powershell -NoProfile -Command "Get-Content -Path 'build-output.txt' -Tail 200" 2>nul || type build-output.txt | more
@@ -163,7 +163,7 @@ if errorlevel 1 (
 
 :: ---- install ----
 echo Installing with nmake...
-nmake install > install-output.txt 2>&1
+powershell -NoProfile -Command "& { nmake install 2>&1 | Tee-Object -FilePath 'install-output.txt' ; exit $LASTEXITCODE }"
 if errorlevel 1 (
   echo install failed. Showing last 200 lines of install-output.txt:
   powershell -NoProfile -Command "Get-Content -Path 'install-output.txt' -Tail 200" 2>nul || type install-output.txt | more
