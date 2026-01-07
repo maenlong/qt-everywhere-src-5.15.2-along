@@ -4,7 +4,6 @@ REM build-qt5-win32.bat
 REM - 支持 <BUILD_TYPE> 变量替换
 REM - 在 vcvarsall 后强化设置 TMP/TEMP 以及 CL 的中间文件/调试信息输出目录
 REM - configure 失败时自动打印 configure 日志尾部，便于定位
-REM NOTE: 本文件建议使用 UTF-8（无 BOM）；脚本会切换到 chcp 65001 以正确显示中文。
 REM -----------------------------------------------------------------------------
 
 chcp 65001 >nul
@@ -53,7 +52,7 @@ if not defined MAKE_JOBS set "MAKE_JOBS=%NUMBER_OF_PROCESSORS%"
 if not defined EXTRA_CONFIG set "EXTRA_CONFIG="
 
 :: ---- replace <BUILD_TYPE> in common variables ----
-for %%V in (QT_SRC BUILD_DIR INSTALL_DIR SAFE_TEMP_DIR PERL_PATH PYTHON_PATH JOM_PATH OPENSSL_DIR EXTRA_CONFIG) do (
+for %%V in (QT_SRC BUILD_DIR INSTALL_DIR SAFE_TEMP_DIR PERL_PATH PYTHON_PATH OPENSSL_DIR EXTRA_CONFIG) do (
   if defined %%V (
     set "tmp=!%%V!"
     set "tmp=!tmp:<BUILD_TYPE>=%BUILD_TAG%!"
@@ -79,7 +78,7 @@ if defined INSTALL_DIR for %%I in ("%INSTALL_DIR%") do set "INSTALL_DIR=%%~fI"
 if defined VS_VCVARS for %%I in ("%VS_VCVARS%") do set "VS_VCVARS=%%~fI"
 if defined PERL_PATH for %%I in ("%PERL_PATH%") do set "PERL_PATH=%%~fI"
 if defined PYTHON_PATH for %%I in ("%PYTHON_PATH%") do set "PYTHON_PATH=%%~fI"
-if defined JOM_PATH for %%I in ("%JOM_PATH%") do set "JOM_PATH=%%~fI"
+REM jom removed - using Visual Studio nmake
 if defined OPENSSL_DIR for %%I in ("%OPENSSL_DIR%") do set "OPENSSL_DIR=%%~fI"
 if defined SAFE_TEMP_DIR for %%I in ("%SAFE_TEMP_DIR%") do set "SAFE_TEMP_DIR=%%~fI"
 
@@ -125,7 +124,6 @@ echo Using CL=%CL%
 :: ---- Add optional tool paths if provided ----
 if defined PERL_PATH set "PATH=%PERL_PATH%;%PATH%"
 if defined PYTHON_PATH set "PATH=%PYTHON_PATH%;%PATH%"
-if defined JOM_PATH set "PATH=%JOM_PATH%;%PATH%"
 
 :: ---- prepare build dir ----
 if exist "%BUILD_DIR%" (
@@ -153,16 +151,9 @@ if errorlevel 1 (
   exit /b 1
 )
 
-:: ---- build (jom or nmake) ----
-echo Starting build...
-where jom >nul 2>&1
-if %ERRORLEVEL%==0 (
-  echo Using jom...
-  jom -j %MAKE_JOBS% > build-output.txt 2>&1
-) else (
-  echo jom not found, using nmake...
-  nmake > build-output.txt 2>&1
-)
+:: ---- build (nmake) ----
+echo Starting build with nmake...
+nmake > build-output.txt 2>&1
 if errorlevel 1 (
   echo build failed. Showing last 200 lines of build-output.txt:
   powershell -NoProfile -Command "Get-Content -Path 'build-output.txt' -Tail 200" 2>nul || type build-output.txt | more
@@ -171,13 +162,8 @@ if errorlevel 1 (
 )
 
 :: ---- install ----
-echo Installing...
-where jom >nul 2>&1
-if %ERRORLEVEL%==0 (
-  jom install > install-output.txt 2>&1
-) else (
-  nmake install > install-output.txt 2>&1
-)
+echo Installing with nmake...
+nmake install > install-output.txt 2>&1
 if errorlevel 1 (
   echo install failed. Showing last 200 lines of install-output.txt:
   powershell -NoProfile -Command "Get-Content -Path 'install-output.txt' -Tail 200" 2>nul || type install-output.txt | more
