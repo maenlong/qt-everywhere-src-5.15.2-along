@@ -12,13 +12,27 @@ chcp 65001 >nul
 setlocal enabledelayedexpansion
 
 :: ---- config file path (可通过参数1指定) ----
-if "%~1"=="" (
-  set "INIFILE=%~dp0qt-build.ini"
-) else (
+:: Support: build-qt5-win32.bat [ini_file] [action]
+:: Actions: all(default), configure, build, install
+
+set "INIFILE=%~dp0qt-build.ini"
+set "ACTION=all"
+
+:: Check if the first argument is a command directly
+if /i "%~1"=="configure" set "ACTION=configure" & goto :CheckIni
+if /i "%~1"=="build"     set "ACTION=build"     & goto :CheckIni
+if /i "%~1"=="install"   set "ACTION=install"   & goto :CheckIni
+if /i "%~1"=="clean"     set "ACTION=clean"     & goto :CheckIni
+
+:: If not a command, treat as INI file if provided
+if "%~1" neq "" (
   set "INIFILE=%~1"
+  if "%~2" neq "" set "ACTION=%~2"
 )
 
+:CheckIni
 if not exist "%INIFILE%" (
+
   echo ERROR: 配置文件不存在: "%INIFILE%"
   exit /b 1
 )
@@ -128,12 +142,36 @@ if defined PERL_PATH set "PATH=%PERL_PATH%;%PATH%"
 if defined PYTHON_PATH set "PATH=%PYTHON_PATH%;%PATH%"
 
 :: ---- prepare build dir ----
-if exist "%BUILD_DIR%" (
-  echo Removing existing build dir "%BUILD_DIR%" ...
-  rd /s /q "%BUILD_DIR%"
+set "DO_CLEAN=0"
+if /i "!ACTION!"=="all" set "DO_CLEAN=1"
+if /i "!ACTION!"=="configure" set "DO_CLEAN=1"
+
+if "!DO_CLEAN!"=="1" (
+  if exist "%BUILD_DIR%" (
+    echo Removing existing build dir "%BUILD_DIR%" ...
+    rd /s /q "%BUILD_DIR%"
+  )
+  mkdir "%BUILD_DIR%"
 )
-mkdir "%BUILD_DIR%"
+
+if not exist "%BUILD_DIR%" (
+    echo ERROR: Build directory "%BUILD_DIR%" does not exist. Cannot perform "!ACTION!".
+    exit /b 1
+)
 pushd "%BUILD_DIR%"
+
+if /i "!ACTION!"=="clean" (
+    echo Cleaning build directory with nmake clean...
+    if exist "Makefile" (
+        chcp 936 >nul
+        nmake clean
+        chcp %OLDCP% >nul
+    ) else (
+        echo Warning: Makefile not found, skipping nmake clean.
+    )
+    popd
+    exit /b 0
+)
 
 :: ---- prepare configure flags ----
 set "STATICFLAG="
@@ -143,50 +181,74 @@ if /i "%BUILD_TYPE%"=="static" set "STATICFLAG=-static"
 if "%USE_STATIC_RUNTIME%"=="1" set "STATICRT=-static-runtime"
 if "%SKIP_QTWEBENGINE%"=="1" set "SKIPFLAG=-skip qtwebengine"
 
-echo Running configure:
-echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
-chcp 936 >nul
-REM Start log viewer for configure
-start "Configure Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=2000;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait"
+set "DO_CONFIGURE=0"
+if /i "!ACTION!"=="all" set "DO_CONFIGURE=1"
+if /i "!ACTION!"=="configure" set "DO_CONFIGURE=1"
 
-call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% > "configure-output.txt" 2>&1
-set "CFGERR=%ERRORLEVEL%"
-chcp %OLDCP% >nul
-if %CFGERR% NEQ 0 (
-  echo configure failed. Showing last 300 lines of configure-output.txt:
-  powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'configure-output.txt' -Tail 300 -Encoding OEM" 2>nul || type configure-output.txt | more
-  popd
-  exit /b 1
+if "!DO_CONFIGURE!"=="1" (
+  echo Running configure:
+  echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
+  chcp 936 >nul
+  REM Start log viewer for configure
+  start "Configure Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=2000;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait"
+
+  call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% > "configure-output.txt" 2>&1
+  set "CFGERR=!ERRORLEVEL!"
+  chcp %OLDCP% >nul
+  if !CFGERR! NEQ 0 (
+    echo configure failed. Showing last 300 lines of configure-output.txt:
+    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'configure-output.txt' -Tail 300 -Encoding OEM" 2>nul || type configure-output.txt | more
+    popd
+    exit /b 1
+  )
+) else (
+  echo Skipping configure step...
 )
 
 :: ---- build (nmake) ----
-echo Starting build with nmake...
-chcp 936 >nul
-REM Start log viewer for build
-start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait | ForEach-Object { $l=$_; if($l -match '(?i) error:'){Write-Host $l -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $l -ForegroundColor Yellow} else {Write-Host $l} }"
+set "DO_BUILD=0"
+if /i "!ACTION!"=="all" set "DO_BUILD=1"
+if /i "!ACTION!"=="build" set "DO_BUILD=1"
 
-nmake > "build-output.txt" 2>&1
-set "BUILERR=%ERRORLEVEL%"
-chcp %OLDCP% >nul
-if %BUILERR% NEQ 0 (
-  echo build failed. Showing last 200 lines of build-output.txt:
-  powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'build-output.txt' -Tail 200 -Encoding OEM" 2>nul || type build-output.txt | more
-  popd
-  exit /b 1
+if "!DO_BUILD!"=="1" (
+  echo Starting build with nmake...
+  chcp 936 >nul
+  REM Start log viewer for build
+  start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait | ForEach-Object { $l=$_; if($l -match '(?i) error:'){Write-Host $l -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $l -ForegroundColor Yellow} else {Write-Host $l} }"
+
+  nmake > "build-output.txt" 2>&1
+  set "BUILERR=!ERRORLEVEL!"
+  chcp %OLDCP% >nul
+  if !BUILERR! NEQ 0 (
+    echo build failed. Showing last 200 lines of build-output.txt:
+    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'build-output.txt' -Tail 200 -Encoding OEM" 2>nul || type build-output.txt | more
+    popd
+    exit /b 1
+  )
+) else (
+  echo Skipping build step...
 )
 
 :: ---- install ----
-echo Installing with nmake...
-chcp 936 >nul
-start "Install Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait"
-nmake install > "install-output.txt" 2>&1
-set "INSTERR=%ERRORLEVEL%"
-chcp %OLDCP% >nul
-if %INSTERR% NEQ 0 (
-  echo install failed. Showing last 200 lines of install-output.txt:
-  powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'install-output.txt' -Tail 200 -Encoding OEM" 2>nul || type install-output.txt | more
-  popd
-  exit /b 1
+set "DO_INSTALL=0"
+if /i "!ACTION!"=="all" set "DO_INSTALL=1"
+if /i "!ACTION!"=="install" set "DO_INSTALL=1"
+
+if "!DO_INSTALL!"=="1" (
+  echo Installing with nmake...
+  chcp 936 >nul
+  start "Install Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait"
+  nmake install > "install-output.txt" 2>&1
+  set "INSTERR=!ERRORLEVEL!"
+  chcp %OLDCP% >nul
+  if !INSTERR! NEQ 0 (
+    echo install failed. Showing last 200 lines of install-output.txt:
+    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'install-output.txt' -Tail 200 -Encoding OEM" 2>nul || type install-output.txt | more
+    popd
+    exit /b 1
+  )
+) else (
+  echo Skipping install step...
 )
 
 echo Build and install finished. Qt installed to %INSTALL_DIR%

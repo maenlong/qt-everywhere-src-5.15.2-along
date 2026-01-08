@@ -9,16 +9,25 @@
 1. 把三文件放在一起（建议放在 `qt-everywhere-src-5.15.2` 同级目录或任意你喜欢的位置）。
 2. 编辑 `qt-build.ini`，把 `QT_SRC`、`VS_VCVARS`、`INSTALL_DIR` 等变量改为你的实际路径。
 3. 在 Visual Studio 2017 的 Developer Command Prompt 中运行（确保已加载 VS 环境）：
-   - 默认读取同目录下的 `qt-build.ini`：
-     build-qt5-win32.bat
-   - 或指定配置文件：
-     build-qt5-win32.bat C:\path\to\qt-build.ini
-4. 等待 configure -> build -> install 完成。日志分别保存在构建目录下的：
+   - **完整构建**（默认，清理并重新构建）：
+     `build-qt5-win32.bat`
+   - **仅继续编译**（不清理，用于报错修复后继续）：
+     `build-qt5-win32.bat build`
+   - **仅安装**：
+     `build-qt5-win32.bat install`
+   - **仅清理**：
+     `build-qt5-win32.bat clean`
+   - **指定配置文件与操作**：
+     `build-qt5-win32.bat my.ini build`
+4. 运行过程中，脚本会**弹出独立的 PowerShell 窗口**实时显示构建日志（支持颜色高亮）。
+   主窗口将保持响应。日志文件保存在构建目录下：
    - `configure-output.txt`
    - `build-output.txt`
    - `install-output.txt`
 
 主要改动（相对于早期版本）
+- **实时日志窗口**：不再通过管道传输日志（避免环境损坏和 `locale.h` 丢失），而是启动独立的 PowerShell 窗口实时监控日志文件，并对 Error/Warning 进行颜色高亮。
+- **操作参数支持**：支持 `build`、`install`、`clean`、`configure` 等参数，方便在编译出错后修复并继续编译，无需每次重新 configure。
 - 已移除对 `jom` 的自动使用与 `JOM_PATH` 配置，构建工具统一为 Visual Studio 自带的 `nmake`。
 - 脚本会在开始时调用 `vcvarsall.bat`（由 `VS_VCVARS` 指定），因此请保证该路径指向 VS2017 的 `vcvarsall.bat`。
 - 与并行构建相关的逻辑已简化（脚本仍会设置并行线程数变量 `MAKE_JOBS`，但实际构建使用 `nmake`）。
@@ -54,9 +63,24 @@
 - 若使用 `static` 且启用 `-static-runtime`，运行时链接错误通常和 CRT mismatch 相关，确保第三方库也用相同 CRT 编译。
 
 构建示例（在 Developer Command Prompt 中）：
-```powershell
-cd <your-build-folder>
+```bat
+REM 完整构建 (Configure + Build + Install)
 build-qt5-win32.bat
+
+REM 仅运行 Configure (会清理构建目录)
+build-qt5-win32.bat configure
+
+REM 仅运行 Build (保留之前进度，用于断点续编)
+build-qt5-win32.bat build
+
+REM 仅运行 Install
+build-qt5-win32.bat install
+
+REM 清理构建 (nmake clean)
+build-qt5-win32.bat clean
+
+REM 指定配置文件的同时指定动作
+build-qt5-win32.bat custom_config.ini build
 ```
 
 脚本行为说明（关键点）
