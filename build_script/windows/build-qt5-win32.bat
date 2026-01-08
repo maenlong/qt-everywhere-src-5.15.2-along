@@ -6,6 +6,8 @@ REM - 在 vcvarsall 后强化设置 TMP/TEMP 以及 CL 的中间文件/调试信
 REM - configure 失败时自动打印 configure 日志尾部，便于定位
 REM -----------------------------------------------------------------------------
 
+for /f "tokens=2 delims=:" %%A in ('chcp') do set "OLDCP=%%A"
+set "OLDCP=%OLDCP: =%"
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
@@ -143,30 +145,39 @@ if "%SKIP_QTWEBENGINE%"=="1" set "SKIPFLAG=-skip qtwebengine"
 
 echo Running configure:
 echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
-powershell -NoProfile -Command "& { & '%QT_SRC%\configure.bat' -prefix '%INSTALL_DIR%' -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% 2>&1 | Tee-Object -FilePath 'configure-output.txt' ; exit $LASTEXITCODE }"
-if errorlevel 1 (
+chcp 936 >nul
+powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936); [Console]::InputEncoding = [Text.Encoding]::GetEncoding(936); & { & '%QT_SRC%\configure.bat' -prefix '%INSTALL_DIR%' -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% 2>&1 | Tee-Object -FilePath 'configure-output.txt' ; exit $LASTEXITCODE }"
+set "CFGERR=%ERRORLEVEL%"
+chcp %OLDCP% >nul
+if %CFGERR% NEQ 0 (
   echo configure failed. Showing last 300 lines of configure-output.txt:
-  powershell -NoProfile -Command "Get-Content -Path 'configure-output.txt' -Tail 300" 2>nul || type configure-output.txt | more
+  powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'configure-output.txt' -Tail 300 -Encoding OEM" 2>nul || type configure-output.txt | more
   popd
   exit /b 1
 )
 
 :: ---- build (nmake) ----
 echo Starting build with nmake...
-powershell -NoProfile -Command "& { nmake 2>&1 | Tee-Object -FilePath 'build-output.txt' ; exit $LASTEXITCODE }"
-if errorlevel 1 (
+chcp 936 >nul
+powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936); [Console]::InputEncoding = [Text.Encoding]::GetEncoding(936); & { nmake 2>&1 | Tee-Object -FilePath 'build-output.txt' ; exit $LASTEXITCODE }"
+set "BUILERR=%ERRORLEVEL%"
+chcp %OLDCP% >nul
+if %BUILERR% NEQ 0 (
   echo build failed. Showing last 200 lines of build-output.txt:
-  powershell -NoProfile -Command "Get-Content -Path 'build-output.txt' -Tail 200" 2>nul || type build-output.txt | more
+  powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'build-output.txt' -Tail 200 -Encoding OEM" 2>nul || type build-output.txt | more
   popd
   exit /b 1
 )
 
 :: ---- install ----
 echo Installing with nmake...
-powershell -NoProfile -Command "& { nmake install 2>&1 | Tee-Object -FilePath 'install-output.txt' ; exit $LASTEXITCODE }"
-if errorlevel 1 (
+chcp 936 >nul
+powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936); [Console]::InputEncoding = [Text.Encoding]::GetEncoding(936); & { nmake install 2>&1 | Tee-Object -FilePath 'install-output.txt' ; exit $LASTEXITCODE }"
+set "INSTERR=%ERRORLEVEL%"
+chcp %OLDCP% >nul
+if %INSTERR% NEQ 0 (
   echo install failed. Showing last 200 lines of install-output.txt:
-  powershell -NoProfile -Command "Get-Content -Path 'install-output.txt' -Tail 200" 2>nul || type install-output.txt | more
+  powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'install-output.txt' -Tail 200 -Encoding OEM" 2>nul || type install-output.txt | more
   popd
   exit /b 1
 )
