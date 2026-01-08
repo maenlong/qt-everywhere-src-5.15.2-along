@@ -190,9 +190,11 @@ if "!DO_CONFIGURE!"=="1" (
   echo Running configure:
   echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
   REM Start log viewer for configure
-  start "Configure Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; if($l -match '(?i) error:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Yellow} else {Write-Host ('['+$t+'] '+$l)} }"
+  type nul > "configure-raw.txt"
+  type nul > "configure-output.txt"
+  start "Configure Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; [Console]::OutputEncoding=[Text.Encoding]::Default; $raw='configure-raw.txt'; $out='configure-output.txt'; $sw=New-Object System.IO.StreamWriter($out,$true,[Text.Encoding]::Default); $sw.AutoFlush=$true; Write-Host 'Tailing configure-raw.txt...'; Get-Content -Path $raw -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; $line='['+$t+'] '+$l; $sw.WriteLine($line); if($l -match '(?i) error:'){Write-Host $line -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $line -ForegroundColor Yellow} else {Write-Host $line} }"
 
-  call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% > "configure-output.txt" 2>&1
+  call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% >> "configure-raw.txt" 2>&1
   set "CFGERR=!ERRORLEVEL!"
   set "TimeEndConf=!TIME!"
   if !CFGERR! NEQ 0 (
@@ -214,9 +216,11 @@ if "!DO_BUILD!"=="1" (
   set "TimeStartBuild=!TIME!"
   echo Starting build with nmake...
   REM Start log viewer for build
-  start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; if($l -match '(?i) error:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Yellow} else {Write-Host ('['+$t+'] '+$l)} }"
+  type nul > "build-raw.txt"
+  type nul > "build-output.txt"
+  start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; [Console]::OutputEncoding=[Text.Encoding]::Default; $raw='build-raw.txt'; $out='build-output.txt'; $sw=New-Object System.IO.StreamWriter($out,$true,[Text.Encoding]::Default); $sw.AutoFlush=$true; Write-Host 'Tailing build-raw.txt...'; Get-Content -Path $raw -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; $line='['+$t+'] '+$l; $sw.WriteLine($line); if($l -match '(?i) error:'){Write-Host $line -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $line -ForegroundColor Yellow} else {Write-Host $line} }"
 
-  nmake > "build-output.txt" 2>&1
+  nmake >> "build-raw.txt" 2>&1
   set "BUILERR=!ERRORLEVEL!"
   set "TimeEndBuild=!TIME!"
   if !BUILERR! NEQ 0 (
@@ -237,9 +241,11 @@ if /i "!ACTION!"=="install" set "DO_INSTALL=1"
 if "!DO_INSTALL!"=="1" (
   set "TimeStartInst=!TIME!"
   echo Starting install with nmake...
-  start "Install Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; if($l -match '(?i) error:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Yellow} else {Write-Host ('['+$t+'] '+$l)} }"
+  type nul > "install-raw.txt"
+  type nul > "install-output.txt"
+  start "Install Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; [Console]::OutputEncoding=[Text.Encoding]::Default; $raw='install-raw.txt'; $out='install-output.txt'; $sw=New-Object System.IO.StreamWriter($out,$true,[Text.Encoding]::Default); $sw.AutoFlush=$true; Write-Host 'Tailing install-raw.txt...'; Get-Content -Path $raw -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; $line='['+$t+'] '+$l; $sw.WriteLine($line); if($l -match '(?i) error:'){Write-Host $line -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $line -ForegroundColor Yellow} else {Write-Host $line} }"
 
-  nmake install > "install-output.txt" 2>&1
+  nmake install >> "install-raw.txt" 2>&1
   set "INSTERR=!ERRORLEVEL!"
   set "TimeEndInst=!TIME!"
   if !INSTERR! NEQ 0 (
