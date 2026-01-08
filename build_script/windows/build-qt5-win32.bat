@@ -146,7 +146,10 @@ if "%SKIP_QTWEBENGINE%"=="1" set "SKIPFLAG=-skip qtwebengine"
 echo Running configure:
 echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
 chcp 936 >nul
-powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936); [Console]::InputEncoding = [Text.Encoding]::GetEncoding(936); & { & '%QT_SRC%\configure.bat' -prefix '%INSTALL_DIR%' -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% 2>&1 | Tee-Object -FilePath 'configure-output.txt' ; exit $LASTEXITCODE }"
+REM Start log viewer for configure
+start "Configure Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=2000;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait"
+
+call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% > "configure-output.txt" 2>&1
 set "CFGERR=%ERRORLEVEL%"
 chcp %OLDCP% >nul
 if %CFGERR% NEQ 0 (
@@ -159,7 +162,10 @@ if %CFGERR% NEQ 0 (
 :: ---- build (nmake) ----
 echo Starting build with nmake...
 chcp 936 >nul
-powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936); [Console]::InputEncoding = [Text.Encoding]::GetEncoding(936); & { nmake 2>&1 | Tee-Object -FilePath 'build-output.txt' ; exit $LASTEXITCODE }"
+REM Start log viewer for build
+start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait | ForEach-Object { $l=$_; if($l -match '(?i) error:'){Write-Host $l -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $l -ForegroundColor Yellow} else {Write-Host $l} }"
+
+nmake > "build-output.txt" 2>&1
 set "BUILERR=%ERRORLEVEL%"
 chcp %OLDCP% >nul
 if %BUILERR% NEQ 0 (
@@ -172,7 +178,8 @@ if %BUILERR% NEQ 0 (
 :: ---- install ----
 echo Installing with nmake...
 chcp 936 >nul
-powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::GetEncoding(936); [Console]::InputEncoding = [Text.Encoding]::GetEncoding(936); & { nmake install 2>&1 | Tee-Object -FilePath 'install-output.txt' ; exit $LASTEXITCODE }"
+start "Install Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait"
+nmake install > "install-output.txt" 2>&1
 set "INSTERR=%ERRORLEVEL%"
 chcp %OLDCP% >nul
 if %INSTERR% NEQ 0 (
