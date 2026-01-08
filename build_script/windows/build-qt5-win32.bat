@@ -186,13 +186,15 @@ if /i "!ACTION!"=="all" set "DO_CONFIGURE=1"
 if /i "!ACTION!"=="configure" set "DO_CONFIGURE=1"
 
 if "!DO_CONFIGURE!"=="1" (
+  set "TimeStartConf=!TIME!"
   echo Running configure:
   echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
   REM Start log viewer for configure
-  start "Configure Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=2000;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait -Encoding Default"
+  start "Configure Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; if($l -match '(?i) error:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Yellow} else {Write-Host ('['+$t+'] '+$l)} }"
 
   call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% > "configure-output.txt" 2>&1
   set "CFGERR=!ERRORLEVEL!"
+  set "TimeEndConf=!TIME!"
   if !CFGERR! NEQ 0 (
     echo configure failed. Showing last 300 lines of configure-output.txt:
     powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::Default; Get-Content -Path 'configure-output.txt' -Tail 300 -Encoding Default" 2>nul || type configure-output.txt | more
@@ -209,12 +211,14 @@ if /i "!ACTION!"=="all" set "DO_BUILD=1"
 if /i "!ACTION!"=="build" set "DO_BUILD=1"
 
 if "!DO_BUILD!"=="1" (
+  set "TimeStartBuild=!TIME!"
   echo Starting build with nmake...
   REM Start log viewer for build
-  start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait -Encoding Default | ForEach-Object { $l=$_; if($l -match '(?i) error:'){Write-Host $l -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $l -ForegroundColor Yellow} else {Write-Host $l} }"
+  start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; if($l -match '(?i) error:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Yellow} else {Write-Host ('['+$t+'] '+$l)} }"
 
   nmake > "build-output.txt" 2>&1
   set "BUILERR=!ERRORLEVEL!"
+  set "TimeEndBuild=!TIME!"
   if !BUILERR! NEQ 0 (
     echo build failed. Showing last 200 lines of build-output.txt:
     powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::Default; Get-Content -Path 'build-output.txt' -Tail 200 -Encoding Default" 2>nul || type build-output.txt | more
@@ -231,10 +235,13 @@ if /i "!ACTION!"=="all" set "DO_INSTALL=1"
 if /i "!ACTION!"=="install" set "DO_INSTALL=1"
 
 if "!DO_INSTALL!"=="1" (
-  echo Installing with nmake...
-  start "Install Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait -Encoding Default"
+  set "TimeStartInst=!TIME!"
+  echo Starting install with nmake...
+  start "Install Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; if($l -match '(?i) error:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host ('['+$t+'] '+$l) -ForegroundColor Yellow} else {Write-Host ('['+$t+'] '+$l)} }"
+
   nmake install > "install-output.txt" 2>&1
   set "INSTERR=!ERRORLEVEL!"
+  set "TimeEndInst=!TIME!"
   if !INSTERR! NEQ 0 (
     echo install failed. Showing last 200 lines of install-output.txt:
     powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::Default; Get-Content -Path 'install-output.txt' -Tail 200 -Encoding Default" 2>nul || type install-output.txt | more
@@ -246,6 +253,30 @@ if "!DO_INSTALL!"=="1" (
 )
 
 echo Build and install finished. Qt installed to %INSTALL_DIR%
+
+echo.
+echo =========================================
+echo             Build Statistics
+echo =========================================
+powershell -NoProfile -Command ^
+  "$steps = @();" ^
+  "if ('!DO_CONFIGURE!' -eq '1') { $steps += @{Name='Configure'; Start='!TimeStartConf!'; End='!TimeEndConf!'} };" ^
+  "if ('!DO_BUILD!' -eq '1')     { $steps += @{Name='Build    '; Start='!TimeStartBuild!'; End='!TimeEndBuild!'} };" ^
+  "if ('!DO_INSTALL!' -eq '1')   { $steps += @{Name='Install  '; Start='!TimeStartInst!'; End='!TimeEndInst!'} };" ^
+  "$totalSeconds = 0;" ^
+  "foreach ($s in $steps) {" ^
+  "  try {" ^
+  "    $start = [DateTime]::Parse($s.Start);" ^
+  "    $end   = [DateTime]::Parse($s.End);" ^
+  "    if ($end -lt $start) { $end = $end.AddDays(1) };" ^
+  "    $dur = $end - $start;" ^
+  "    $totalSeconds += $dur.TotalSeconds;" ^
+  "    Write-Host ('{0} : {1:hh\:mm\:ss\.fff}' -f $s.Name, $dur);" ^
+  "  } catch { Write-Host ('{0} : Error calculating time' -f $s.Name) }" ^
+  "}" ^
+  "$ts = [TimeSpan]::FromSeconds($totalSeconds);" ^
+  "Write-Host ('-----------------------------------------');" ^
+  "Write-Host ('Total Time : {0:hh\:mm\:ss\.fff}' -f $ts);"
 
 popd
 endlocal
