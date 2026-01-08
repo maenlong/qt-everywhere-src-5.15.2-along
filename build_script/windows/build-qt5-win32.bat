@@ -188,16 +188,14 @@ if /i "!ACTION!"=="configure" set "DO_CONFIGURE=1"
 if "!DO_CONFIGURE!"=="1" (
   echo Running configure:
   echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
-  chcp 936 >nul
   REM Start log viewer for configure
-  start "Configure Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=2000;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait"
+  start "Configure Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=2000;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing configure-output.txt...'; Get-Content -Path 'configure-output.txt' -Wait -Encoding Default"
 
   call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% > "configure-output.txt" 2>&1
   set "CFGERR=!ERRORLEVEL!"
-  chcp %OLDCP% >nul
   if !CFGERR! NEQ 0 (
     echo configure failed. Showing last 300 lines of configure-output.txt:
-    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'configure-output.txt' -Tail 300 -Encoding OEM" 2>nul || type configure-output.txt | more
+    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::Default; Get-Content -Path 'configure-output.txt' -Tail 300 -Encoding Default" 2>nul || type configure-output.txt | more
     popd
     exit /b 1
   )
@@ -212,16 +210,14 @@ if /i "!ACTION!"=="build" set "DO_BUILD=1"
 
 if "!DO_BUILD!"=="1" (
   echo Starting build with nmake...
-  chcp 936 >nul
   REM Start log viewer for build
-  start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait | ForEach-Object { $l=$_; if($l -match '(?i) error:'){Write-Host $l -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $l -ForegroundColor Yellow} else {Write-Host $l} }"
+  start "Build Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; Write-Host 'Tailing build-output.txt...'; Get-Content -Path 'build-output.txt' -Wait -Encoding Default | ForEach-Object { $l=$_; if($l -match '(?i) error:'){Write-Host $l -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $l -ForegroundColor Yellow} else {Write-Host $l} }"
 
   nmake > "build-output.txt" 2>&1
   set "BUILERR=!ERRORLEVEL!"
-  chcp %OLDCP% >nul
   if !BUILERR! NEQ 0 (
     echo build failed. Showing last 200 lines of build-output.txt:
-    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'build-output.txt' -Tail 200 -Encoding OEM" 2>nul || type build-output.txt | more
+    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::Default; Get-Content -Path 'build-output.txt' -Tail 200 -Encoding Default" 2>nul || type build-output.txt | more
     popd
     exit /b 1
   )
@@ -236,14 +232,12 @@ if /i "!ACTION!"=="install" set "DO_INSTALL=1"
 
 if "!DO_INSTALL!"=="1" (
   echo Installing with nmake...
-  chcp 936 >nul
-  start "Install Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait"
+  start "Install Log Viewer" powershell -NoProfile -WindowStyle Hidden -Command "Write-Host 'Tailing install-output.txt...'; Get-Content -Path 'install-output.txt' -Wait -Encoding Default"
   nmake install > "install-output.txt" 2>&1
   set "INSTERR=!ERRORLEVEL!"
-  chcp %OLDCP% >nul
   if !INSTERR! NEQ 0 (
     echo install failed. Showing last 200 lines of install-output.txt:
-    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Get-Content -Path 'install-output.txt' -Tail 200 -Encoding OEM" 2>nul || type install-output.txt | more
+    powershell -NoProfile -Command "[Console]::OutputEncoding = [Text.Encoding]::Default; Get-Content -Path 'install-output.txt' -Tail 200 -Encoding Default" 2>nul || type install-output.txt | more
     popd
     exit /b 1
   )
