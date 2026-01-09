@@ -188,13 +188,13 @@ if /i "!ACTION!"=="configure" set "DO_CONFIGURE=1"
 if "!DO_CONFIGURE!"=="1" (
   set "TimeStartConf=!TIME!"
   echo Running configure:
-  echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
+  echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -debug-and-release -mp -platform win32-msvc -opengl desktop -nomake tests -nomake examples -nomake tools %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
   REM Start log viewer for configure
   type nul > "configure-raw.txt"
   type nul > "configure-output.txt"
   start "Configure Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; [Console]::OutputEncoding=[Text.Encoding]::Default; $raw='configure-raw.txt'; $out='configure-output.txt'; $sw=New-Object System.IO.StreamWriter($out,$true,[Text.Encoding]::Default); $sw.AutoFlush=$true; Write-Host 'Tailing configure-raw.txt...'; Get-Content -Path $raw -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; $line='['+$t+'] '+$l; $sw.WriteLine($line); if($l -match '(?i) error:'){Write-Host $line -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $line -ForegroundColor Yellow} else {Write-Host $line} }"
 
-  call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -release -platform win32-msvc2017 -opengl desktop -nomake tests -nomake examples %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% >> "configure-raw.txt" 2>&1
+  call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license -debug-and-release -mp -platform win32-msvc -opengl desktop -nomake tests -nomake examples -nomake tools %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% >> "configure-raw.txt" 2>&1
   set "CFGERR=!ERRORLEVEL!"
   set "TimeEndConf=!TIME!"
   if !CFGERR! NEQ 0 (
