@@ -107,10 +107,10 @@ echo 安装目录:  %INSTALL_DIR%
 echo 缓存目录:  %SAFE_TEMP_DIR%
 echo vcvarsall:  %VS_VCVARS%
 echo 构建类型:  %BUILD_TYPE%  (static-runtime=%USE_STATIC_RUNTIME%)
-echo 构建配置:  %BUILD_CONFIG%
+echo 构建配置:  "%BUILD_CONFIG%"
 echo 跳过 webengine: %SKIP_QTWEBENGINE%
 echo 并行线程数: %MAKE_JOBS%
-echo 额外参数:  %EXTRA_CONFIG%
+echo 额外参数:  "%EXTRA_CONFIG%"
 echo ====================================================
 echo.
 
