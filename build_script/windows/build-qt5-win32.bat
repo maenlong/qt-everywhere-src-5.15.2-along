@@ -106,9 +106,11 @@ echo 构建目录:  %BUILD_DIR%
 echo 安装目录:  %INSTALL_DIR%
 echo 缓存目录:  %SAFE_TEMP_DIR%
 echo vcvarsall:  %VS_VCVARS%
+echo 架构:      %VS_ARG%
 echo 构建类型:  %BUILD_TYPE%  (static-runtime=%USE_STATIC_RUNTIME%)
 echo 构建配置:  "%BUILD_CONFIG%"
 echo 跳过 webengine: %SKIP_QTWEBENGINE%
+if defined OPENSSL_DIR (echo OpenSSL:    %OPENSSL_DIR%) else (echo OpenSSL:    未配置)
 echo 并行线程数: %MAKE_JOBS%
 echo 额外参数:  "%EXTRA_CONFIG%"
 echo ====================================================
@@ -179,9 +181,11 @@ if /i "!ACTION!"=="clean" (
 set "STATICFLAG="
 set "STATICRT="
 set "SKIPFLAG="
+set "SSLFLAG="
 if /i "%BUILD_TYPE%"=="static" set "STATICFLAG=-static"
 if "%USE_STATIC_RUNTIME%"=="1" set "STATICRT=-static-runtime"
 if "%SKIP_QTWEBENGINE%"=="1" set "SKIPFLAG=-skip qtwebengine"
+if defined OPENSSL_DIR if exist "%OPENSSL_DIR%" set "SSLFLAG=-openssl-linked OPENSSL_PREFIX="%OPENSSL_DIR%""
 
 set "DO_CONFIGURE=0"
 if /i "!ACTION!"=="all" set "DO_CONFIGURE=1"
@@ -190,13 +194,13 @@ if /i "!ACTION!"=="configure" set "DO_CONFIGURE=1"
 if "!DO_CONFIGURE!"=="1" (
   set "TimeStartConf=!TIME!"
   echo Running configure:
-  echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license %BUILD_CONFIG% -mp -platform win32-msvc -opengl desktop -nomake tests -nomake examples -nomake tools %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
+  echo call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license %BUILD_CONFIG% -mp -platform win32-msvc -opengl desktop -nomake tests -nomake examples -nomake tools %SSLFLAG% %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG%
   REM Start log viewer for configure
   type nul > "configure-raw.txt"
   type nul > "configure-output.txt"
   start "Configure Log Viewer" powershell -NoProfile -Command "$h=Get-Host;$w=$h.UI.RawUI.WindowSize;$b=$h.UI.RawUI.BufferSize;$w.Height=50;$w.Width=120;$b.Height=9999;$b.Width=120;$h.UI.RawUI.WindowSize=$w;$h.UI.RawUI.BufferSize=$b; [Console]::OutputEncoding=[Text.Encoding]::Default; $raw='configure-raw.txt'; $out='configure-output.txt'; $sw=New-Object System.IO.StreamWriter($out,$true,[Text.Encoding]::Default); $sw.AutoFlush=$true; Write-Host 'Tailing configure-raw.txt...'; Get-Content -Path $raw -Wait -Encoding Default | ForEach-Object { $t=(Get-Date).ToString('HH:mm:ss.fff'); $l=$_; $line='['+$t+'] '+$l; $sw.WriteLine($line); if($l -match '(?i) error:'){Write-Host $line -ForegroundColor Red} elseif($l -match '(?i) warning:'){Write-Host $line -ForegroundColor Yellow} else {Write-Host $line} }"
 
-  call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license %BUILD_CONFIG% -mp -platform win32-msvc -opengl desktop -nomake tests -nomake examples -nomake tools %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% >> "configure-raw.txt" 2>&1
+  call "%QT_SRC%\configure.bat" -prefix "%INSTALL_DIR%" -opensource -confirm-license %BUILD_CONFIG% -mp -platform win32-msvc -opengl desktop -nomake tests -nomake examples -nomake tools %SSLFLAG% %EXTRA_CONFIG% %STATICFLAG% %STATICRT% %SKIPFLAG% >> "configure-raw.txt" 2>&1
   set "CFGERR=!ERRORLEVEL!"
   set "TimeEndConf=!TIME!"
   if !CFGERR! NEQ 0 (
